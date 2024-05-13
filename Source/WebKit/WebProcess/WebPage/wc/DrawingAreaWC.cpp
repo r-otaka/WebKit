@@ -138,10 +138,30 @@ void DrawingAreaWC::setLayerTreeStateIsFrozen(bool isFrozen)
     }
 }
 
-void DrawingAreaWC::updateGeometryWC(uint64_t backingStoreStateID, IntSize viewSize)
+// void DrawingAreaWC::updateGeometryWC(uint64_t backingStoreStateID, IntSize viewSize)
+void DrawingAreaWC::updateGeometryWC(uint64_t backingStoreStateID, IntSize viewSize, float deviceScaleFactor) // device scale factor
 {
     m_backingStoreStateID = backingStoreStateID;
+    m_webPage->setDeviceScaleFactor(deviceScaleFactor); // device scale factor
     m_webPage->setSize(viewSize);
+    
+    //*
+    for (auto it = m_rootLayers.begin(); it != m_rootLayers.end(); it++) {
+        auto& rootLayer = *it;
+        auto frame = WebProcess::singleton().webFrame(rootLayer.frameID);
+        ASSERT(frame);
+        
+        bool isMainFrame = frame->isMainFrame();
+
+        IntSize size;
+        if (isMainFrame)
+            size = m_webPage->size();
+        else
+            size = frame->size();
+
+        updateRootLayerSize(rootLayer.layer, size);
+    }
+    //*/
 }
 
 void DrawingAreaWC::setNeedsDisplay()
@@ -252,11 +272,14 @@ void DrawingAreaWC::updateRendering()
 void DrawingAreaWC::sendUpdateAC()
 {
     bool didProcessMainFrame = false;
+    FloatSize viewport = m_webPage->size();
+    viewport.scale(m_webPage->deviceScaleFactor());
     for (auto it = m_rootLayers.begin(); it != m_rootLayers.end(); it++) {
         auto& rootLayer = *it;
         auto frame = WebProcess::singleton().webFrame(rootLayer.frameID);
         ASSERT(frame);
         m_updateInfo.remoteContextHostedIdentifier = frame->layerHostingContextIdentifier();
+        m_updateInfo.viewport = WebCore::expandedIntSize(viewport);
         m_updateInfo.rootLayer = rootLayer.layer->primaryLayerID();
 
         bool isLastFrame = (it + 1) == m_rootLayers.end();
@@ -268,7 +291,9 @@ void DrawingAreaWC::sendUpdateAC()
             size = m_webPage->size();
         else
             size = frame->size();
-        rootLayer.layer->setSize(size);
+        // size.scale(1.0f / m_webPage->deviceScaleFactor());
+        // rootLayer.layer->setSize(size);
+        updateRootLayerSize(rootLayer.layer, size);
         rootLayer.layer->flushCompositingStateForThisLayerOnly();
 
         // Because our view-relative overlay root layer is not attached to the FrameView's GraphicsLayer tree, we need to flush it manually.
@@ -297,6 +322,19 @@ void DrawingAreaWC::sendUpdateAC()
             });
         });
     }
+}
+
+void DrawingAreaWC::updateRootLayerSize(auto layer, IntSize& size)
+{
+    layer->setSize(size);
+    float deviceScaleFactor = m_webPage->deviceScaleFactor();
+    TransformationMatrix m;
+    m.scale(deviceScaleFactor);
+    // Center view
+    double tx = (size.width() - size.width() / deviceScaleFactor) / 2.0;
+    double ty = (size.height() - size.height() / deviceScaleFactor) / 2.0;
+    m.translate(tx, ty);
+    layer->setTransform(m);
 }
 
 static bool shouldPaintBoundsRect(const IntRect& bounds, const Vector<IntRect, 1>& rects)
@@ -328,8 +366,8 @@ void DrawingAreaWC::sendUpdateNonAC()
     Ref webPage = m_webPage.get();
     ASSERT(webPage->bounds().contains(bounds));
     IntSize bitmapSize = bounds.size();
-    float deviceScaleFactor = webPage->corePage()->deviceScaleFactor();
-    bitmapSize.scale(deviceScaleFactor);
+    // float deviceScaleFactor = webPage->corePage()->deviceScaleFactor();
+    // bitmapSize.scale(deviceScaleFactor); // device scale factor
 
     auto image = createImageBuffer(bitmapSize);
     auto rects = m_dirtyRegion.rects();
@@ -350,10 +388,11 @@ void DrawingAreaWC::sendUpdateNonAC()
     m_scrollOffset = { };
 
     auto& graphicsContext = image->context();
-    graphicsContext.applyDeviceScaleFactor(deviceScaleFactor);
+    // graphicsContext.applyDeviceScaleFactor(deviceScaleFactor); // device scale factor
     graphicsContext.translate(-bounds.x(), -bounds.y());
     for (const auto& rect : rects)
-        webPage->drawRect(image->context(), rect);
+        // webPage->drawRect(image->context(), rect);
+        webPage->drawRect(graphicsContext, rect);
     image->flushDrawingContextAsync();
 
     auto fence = m_webPage->ensureRemoteRenderingBackendProxy().flushImageBuffers();
@@ -398,9 +437,12 @@ void DrawingAreaWC::commitLayerUpdateInfo(WCLayerUpdateInfo&& info)
 
 RefPtr<ImageBuffer> DrawingAreaWC::createImageBuffer(FloatSize size)
 {
+    float deviceScaleFactor = m_webPage->corePage()->deviceScaleFactor(); // device scale factor
     if (WebProcess::singleton().shouldUseRemoteRenderingFor(RenderingPurpose::DOM))
-        return Ref { m_webPage.get() }->ensureRemoteRenderingBackendProxy().createImageBuffer(size, RenderingPurpose::DOM, 1, DestinationColorSpace::SRGB(), PixelFormat::BGRA8, { });
-    return ImageBuffer::create<ImageBufferShareableBitmapBackend>(size, 1, DestinationColorSpace::SRGB(), PixelFormat::BGRA8, RenderingPurpose::DOM, { });
+    //     return Ref { m_webPage.get() }->ensureRemoteRenderingBackendProxy().createImageBuffer(size, RenderingPurpose::DOM, 1, DestinationColorSpace::SRGB(), PixelFormat::BGRA8, { });
+    // return ImageBuffer::create<ImageBufferShareableBitmapBackend>(size, 1, DestinationColorSpace::SRGB(), PixelFormat::BGRA8, RenderingPurpose::DOM, { });
+        return Ref { m_webPage.get() }->ensureRemoteRenderingBackendProxy().createImageBuffer(size, RenderingPurpose::DOM, deviceScaleFactor, DestinationColorSpace::SRGB(), PixelFormat::BGRA8, { });
+    return ImageBuffer::create<ImageBufferShareableBitmapBackend>(size, deviceScaleFactor, DestinationColorSpace::SRGB(), PixelFormat::BGRA8, RenderingPurpose::DOM, { });
 }
 
 void DrawingAreaWC::displayDidRefresh()

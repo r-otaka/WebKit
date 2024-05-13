@@ -280,6 +280,9 @@ void WebInspectorUI::changeAttachedWindowWidth(unsigned width)
 
 void WebInspectorUI::changeSheetRect(const FloatRect& rect)
 {
+    // FloatRect scaledRect = rect;
+    // scaledRect.scale(m_page.deviceScaleFactor());
+    // WebProcess::singleton().parentProcessConnection()->send(Messages::WebInspectorUIProxy::SetSheetRect(scaledRect), m_inspectedPageIdentifier);
     WebProcess::singleton().parentProcessConnection()->send(Messages::WebInspectorUIProxy::SetSheetRect(rect), m_inspectedPageIdentifier);
 }
 

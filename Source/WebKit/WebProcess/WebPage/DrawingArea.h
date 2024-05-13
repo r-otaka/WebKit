@@ -154,7 +154,8 @@ public:
 #endif
 
 #if USE(GRAPHICS_LAYER_WC)
-    virtual void updateGeometryWC(uint64_t, WebCore::IntSize) { };
+    // virtual void updateGeometryWC(uint64_t, WebCore::IntSize) { };
+    virtual void updateGeometryWC(uint64_t, WebCore::IntSize, float) { };
 #endif
 
 #if USE(COORDINATED_GRAPHICS) || USE(TEXTURE_MAPPER)

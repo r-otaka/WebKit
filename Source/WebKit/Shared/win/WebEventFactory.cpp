@@ -391,13 +391,22 @@ WebMouseEvent WebEventFactory::createWebMouseEvent(HWND hWnd, UINT message, WPAR
         type = WebEventType::KeyDown;
     }
 
-    POINT position = point(lParam);
-    POINT globalPosition = position;
-    ::ClientToScreen(hWnd, &globalPosition);
+    // POINT position = point(lParam);
+    // POINT globalPosition = position;
+    // ::ClientToScreen(hWnd, &globalPosition);
+    auto deviceScaleFactor = deviceScaleFactorForWindow(hWnd);
+    POINT positionPoint = point(lParam);
+    POINT globalPositionPoint = positionPoint;
+    ::ClientToScreen(hWnd, &globalPositionPoint);
+    IntPoint globalPosition(globalPositionPoint);
+    globalPosition.scale(1 / deviceScaleFactor);
+    IntPoint position = positionPoint;
+    position.scale(1 / deviceScaleFactor);
 
     double timestamp = ::GetTickCount() * 0.001; // ::GetTickCount returns milliseconds (Chrome uses GetMessageTime() / 1000.0)
 
-    int clickCount = WebKit::clickCount(type, button, position, timestamp);
+    // int clickCount = WebKit::clickCount(type, button, position, timestamp);
+    int clickCount = WebKit::clickCount(type, button, positionPoint, timestamp);
     auto modifiers = modifiersForEvent(wParam);
     auto buttons = buttonsForEvent(wParam);
 
@@ -406,9 +415,16 @@ WebMouseEvent WebEventFactory::createWebMouseEvent(HWND hWnd, UINT message, WPAR
 
 WebWheelEvent WebEventFactory::createWebWheelEvent(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    POINT globalPosition = point(lParam);
-    POINT position = globalPosition;
-    ::ScreenToClient(hWnd, &position);
+    // POINT globalPosition = point(lParam);
+    // POINT position = globalPosition;
+    // ::ScreenToClient(hWnd, &position);
+    auto deviceScaleFactor = deviceScaleFactorForWindow(hWnd);
+    POINT positionPoint = point(lParam);
+    IntPoint globalPosition = positionPoint;
+    ::ScreenToClient(hWnd, &positionPoint);
+    globalPosition.scale(1 / deviceScaleFactor);
+    IntPoint position = positionPoint;
+    position.scale(1 / deviceScaleFactor);
 
     WebWheelEvent::Granularity granularity = WebWheelEvent::ScrollByPixelWheelEvent;
 

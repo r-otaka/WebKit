@@ -153,7 +153,8 @@ std::optional<UpdateInfo> WCScene::update(WCUpdateInfo&& update)
                     layer->texmapLayer.setBackingStore(&backingStore);
                 }
                 auto& backingStore = *layer->backingStore;
-                backingStore.setSize(WebCore::IntSize(layer->texmapLayer.size()));
+                // backingStore.setSize(WebCore::IntSize(layer->texmapLayer.size()));
+                backingStore.setSize(layerUpdate.background.backingStoreSize);
                 for (auto& tileUpdate : layerUpdate.background.tileUpdates) {
                     if (tileUpdate.willRemove)
                         backingStore.removeTile(tileUpdate.index);
@@ -269,15 +270,19 @@ std::optional<UpdateInfo> WCScene::update(WCUpdateInfo&& update)
         texture = m_textureMapper->acquireTextureFromPool(windowSize, { WebCore::BitmapTexture::Flags::SupportsAlpha });
         surface = texture.get();
     } else
-        glViewport(0, 0, windowSize.width(), windowSize.height());
+        // glViewport(0, 0, windowSize.width(), windowSize.height());
+        glViewport(0, 0, update.viewport.width(), update.viewport.height());
 
     m_textureMapper->beginPainting(WebCore::TextureMapper::FlipY::No, surface);
     rootLayer->paint(*m_textureMapper);
     if (showFPS)
         m_fpsCounter.updateFPSAndDisplay(*m_textureMapper);
     if (readPixel) {
-        bitmap = WebCore::ShareableBitmap::create({ windowSize });
-        glReadPixels(0, 0, windowSize.width(), windowSize.height(), GL_BGRA, GL_UNSIGNED_BYTE, bitmap->data());
+        // bitmap = WebCore::ShareableBitmap::create({ windowSize });
+        // glReadPixels(0, 0, windowSize.width(), windowSize.height(), GL_BGRA, GL_UNSIGNED_BYTE, bitmap->data());
+        bitmap = WebCore::ShareableBitmap::create({ update.viewport });
+        glReadPixels(0, 0, update.viewport.width(), update.viewport.height(), GL_BGRA, GL_UNSIGNED_BYTE, bitmap->data());
+        // glReadPixels(0, 0, windowSize.width(), windowSize.height(), GL_BGRA, GL_UNSIGNED_BYTE, bitmap->data());
     }
     m_textureMapper->endPainting();
 
@@ -287,10 +292,12 @@ std::optional<UpdateInfo> WCScene::update(WCUpdateInfo&& update)
     else if (m_usesOffscreenRendering) {
         if (auto handle = bitmap->createHandle()) {
             result.emplace();
-            result->viewSize = windowSize;
+            // result->viewSize = windowSize;
+            result->viewSize = update.viewport;
             result->deviceScaleFactor = 1;
             result->updateScaleFactor = 1;
-            WebCore::IntRect viewport = { { }, windowSize };
+            // WebCore::IntRect viewport = { { }, windowSize };
+            WebCore::IntRect viewport = { { }, update.viewport };
             result->updateRectBounds = viewport;
             result->updateRects.append(viewport);
             result->bitmapHandle = WTFMove(*handle);

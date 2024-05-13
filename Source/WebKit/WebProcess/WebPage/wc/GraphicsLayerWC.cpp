@@ -37,6 +37,24 @@
 namespace WebKit {
 using namespace WebCore;
 
+// FloatRect scaled(FloatRect rect, float scale)
+// {
+//     rect.scale(scale);
+//     return rect;
+// }
+
+// FloatSize scaled(FloatSize rect, float scale)
+// {
+//     rect.scale(scale);
+//     return rect;
+// }
+
+auto scaled(auto rect, float scale)
+{
+    rect.scale(scale);
+    return rect;
+}
+
 class WCTiledBacking final : public TiledBacking {
     WTF_MAKE_FAST_ALLOCATED;
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(WCTiledBacking);
@@ -59,12 +77,20 @@ public:
             if (!tile.hasDirtyRect())
                 continue;
             repainted = true;
+            float deviceScaleFactor = m_owner.deviceScaleFactor(); // device scale factor
             auto& dirtyRect = tile.dirtyRect();
-            tileUpdate.dirtyRect = dirtyRect;
+            // auto dirtyRect = scaled(tile.dirtyRect(), deviceScaleFactor);
+            // tileUpdate.dirtyRect = dirtyRect;
+            // tileUpdate.dirtyRect = WebCore::enclosingIntRect(scaled(dirtyRect, deviceScaleFactor)); // something WebInspector error has occured
+            tileUpdate.dirtyRect = scaled(dirtyRect, deviceScaleFactor);
+            // tileUpdate.coverageRect = scaled(m_coverageRect, deviceScaleFactor);
             auto image = m_owner.createImageBuffer(dirtyRect.size());
+            // auto image = m_owner.createImageBuffer(tileUpdate.dirtyRect.size());
             auto& context = image->context();
             context.translate(-dirtyRect.x(), -dirtyRect.y());
             m_owner.paintGraphicsLayerContents(context, dirtyRect);
+            // context.translate(-m_dirtyRect.x(), -m_dirtyRect.y());
+            // m_owner.paintGraphicsLayerContents(context, m_dirtyRect);
             image->flushDrawingContextAsync();
             tileUpdate.backingStore.setImageBuffer(WTFMove(image));
             update.background.tileUpdates.append(WTFMove(tileUpdate));
@@ -584,6 +610,7 @@ void GraphicsLayerWC::flushCompositingStateForThisLayerOnly()
         update.background.color = backgroundColor();
         if (drawsContent() && contentsAreVisible()) {
             update.background.hasBackingStore = true;
+            update.background.backingStoreSize = WebCore::expandedIntSize(scaled(size(), deviceScaleFactor())); // device scale factor
             if (m_tiledBacking->paintAndFlush(update)) {
                 incrementRepaintCount();
                 update.changes.add(WCLayerChange::RepaintCount);
