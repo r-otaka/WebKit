@@ -40,6 +40,8 @@ static const int popupWindowBorderWidth = 1;
 
 void WebPopupMenu::setUpPlatformData(const WebCore::IntRect& pageCoordinates, PlatformPopupMenuData& data)
 {
+    // auto deviceScaleFactor = m_webView->page()->deviceScaleFactor();
+
     int itemCount = m_popupClient->listSize();
 
     auto font = m_popupClient->menuStyle().font();
