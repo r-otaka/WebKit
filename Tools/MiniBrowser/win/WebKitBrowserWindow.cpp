@@ -398,6 +398,7 @@ void WebKitBrowserWindow::resetZoom()
     auto page = WKViewGetPage(m_view.get());
     // WKPageSetPageZoomFactor(page, WebCore::deviceScaleFactorForWindow(hwnd()));.
     WKPageSetPageZoomFactor(page, 1);
+    // WKPageSetCustomBackingScaleFactor(page, 2.0f);
 }
 
 void WebKitBrowserWindow::zoomIn()

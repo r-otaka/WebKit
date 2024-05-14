@@ -163,6 +163,9 @@ LRESULT WebView::wndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_WINDOWPOSCHANGED:
         lResult = onWindowPositionChangedEvent(hWnd, message, wParam, lParam, handled);
         break;
+    case WM_DPICHANGED:
+        lResult = onDPIChanged(hWnd, message, wParam, lParam, handled);
+        break;
     case WM_SETFOCUS:
         lResult = onSetFocusEvent(hWnd, message, wParam, lParam, handled);
         break;
@@ -336,7 +339,7 @@ void WebView::windowAncestryDidChange()
 
 LRESULT WebView::onMouseEvent(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& handled)
 {
-    NativeWebMouseEvent mouseEvent = NativeWebMouseEvent(hWnd, message, wParam, lParam, m_wasActivatedByMouseEvent);
+    NativeWebMouseEvent mouseEvent = NativeWebMouseEvent(hWnd, message, wParam, lParam, m_wasActivatedByMouseEvent, m_page->deviceScaleFactor());
     setWasActivatedByMouseEvent(false);
 
     switch (message) {
@@ -373,7 +376,7 @@ LRESULT WebView::onMouseEvent(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 
 LRESULT WebView::onWheelEvent(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool& handled)
 {
-    NativeWebWheelEvent wheelEvent(hWnd, message, wParam, lParam);
+    NativeWebWheelEvent wheelEvent(hWnd, message, wParam, lParam, m_page->deviceScaleFactor());
     if (wheelEvent.controlKey()) {
         // We do not want WebKit to handle Control + Wheel, this should be handled by the client application
         // to zoom the page.
@@ -576,7 +579,7 @@ LRESULT WebView::onSizeEvent(HWND hwnd, UINT, WPARAM, LPARAM lParam, bool& handl
 
 LRESULT WebView::onWindowPositionChangedEvent(HWND hwnd, UINT, WPARAM, LPARAM lParam, bool& handled)
 {
-    if(m_page) {
+    if (m_page) {
         m_page->setIntrinsicDeviceScaleFactor(deviceScaleFactorForWindow(hwnd)); // device scale factor (moving bitween another scale displays)
     }
 
@@ -584,6 +587,15 @@ LRESULT WebView::onWindowPositionChangedEvent(HWND hwnd, UINT, WPARAM, LPARAM lP
         updateActiveStateSoon();
 
     handled = false;
+    return 0;
+}
+
+LRESULT WebView::onDPIChanged(HWND hwnd, UINT, WPARAM, LPARAM lParam, bool& handled)
+{
+    if (m_page) {
+        m_page->setIntrinsicDeviceScaleFactor(deviceScaleFactorForWindow(hwnd)); // device scale factor (moving bitween another scale displays)
+    }
+
     return 0;
 }
 

@@ -144,13 +144,13 @@ void DrawingAreaWC::updateGeometryWC(uint64_t backingStoreStateID, IntSize viewS
     m_backingStoreStateID = backingStoreStateID;
     m_webPage->setDeviceScaleFactor(deviceScaleFactor); // device scale factor
     m_webPage->setSize(viewSize);
-    
-    //*
+
+// /*
     for (auto it = m_rootLayers.begin(); it != m_rootLayers.end(); it++) {
         auto& rootLayer = *it;
         auto frame = WebProcess::singleton().webFrame(rootLayer.frameID);
         ASSERT(frame);
-        
+
         bool isMainFrame = frame->isMainFrame();
 
         IntSize size;
@@ -161,7 +161,7 @@ void DrawingAreaWC::updateGeometryWC(uint64_t backingStoreStateID, IntSize viewS
 
         updateRootLayerSize(rootLayer.layer, size);
     }
-    //*/
+// */
 }
 
 void DrawingAreaWC::setNeedsDisplay()

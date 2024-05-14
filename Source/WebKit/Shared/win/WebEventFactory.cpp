@@ -332,7 +332,7 @@ static String keyIdentifierFromEvent(WPARAM wparam, WebEventType type)
     }
 }
 
-WebMouseEvent WebEventFactory::createWebMouseEvent(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool didActivateWebView)
+WebMouseEvent WebEventFactory::createWebMouseEvent(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, bool didActivateWebView, float deviceScaleFactor)
 {
     WebEventType type;
     WebMouseEventButton button = WebMouseEventButton::None;
@@ -394,7 +394,8 @@ WebMouseEvent WebEventFactory::createWebMouseEvent(HWND hWnd, UINT message, WPAR
     // POINT position = point(lParam);
     // POINT globalPosition = position;
     // ::ClientToScreen(hWnd, &globalPosition);
-    auto deviceScaleFactor = deviceScaleFactorForWindow(hWnd);
+    // auto deviceScaleFactor = deviceScaleFactorForWindow(hWnd);
+    // auto deviceScaleFactor = m_webView->page()->deviceScaleFactor();
     POINT positionPoint = point(lParam);
     POINT globalPositionPoint = positionPoint;
     ::ClientToScreen(hWnd, &globalPositionPoint);
@@ -413,12 +414,12 @@ WebMouseEvent WebEventFactory::createWebMouseEvent(HWND hWnd, UINT message, WPAR
     return WebMouseEvent( { type, modifiers, WallTime::now() }, button, buttons, position, globalPosition, 0, 0, 0, clickCount, didActivateWebView);
 }
 
-WebWheelEvent WebEventFactory::createWebWheelEvent(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+WebWheelEvent WebEventFactory::createWebWheelEvent(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, float deviceScaleFactor)
 {
     // POINT globalPosition = point(lParam);
     // POINT position = globalPosition;
     // ::ScreenToClient(hWnd, &position);
-    auto deviceScaleFactor = deviceScaleFactorForWindow(hWnd);
+    // auto deviceScaleFactor = deviceScaleFactorForWindow(hWnd);
     POINT positionPoint = point(lParam);
     IntPoint globalPosition = positionPoint;
     ::ScreenToClient(hWnd, &positionPoint);

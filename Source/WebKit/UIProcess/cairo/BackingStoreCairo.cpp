@@ -103,7 +103,7 @@ void BackingStore::incorporateUpdate(UpdateInfo&& updateInfo)
 #if ASSERT_ENABLED
     IntSize updateSize = updateInfo.updateRectBounds.size();
     updateSize.scale(m_deviceScaleFactor);
-    ASSERT((bitmap->size().width() - updateSize.width() <= 2) && (bitmap->size().width() - updateSize.width() >= -2));     // device scale factor
+    ASSERT((bitmap->size().width() - updateSize.width() <= 2) && (bitmap->size().width() - updateSize.width() >= -2)); // device scale factor
     ASSERT((bitmap->size().height() - updateSize.height() <= 2) && (bitmap->size().height() - updateSize.height() >= -2)); // device scale factor
 #endif
 
