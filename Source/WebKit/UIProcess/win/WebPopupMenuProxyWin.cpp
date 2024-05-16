@@ -352,30 +352,25 @@ void WebPopupMenuProxyWin::calculatePositionAndSize(const IntRect& rect)
 {
     auto deviceScaleFactor = m_webView->page()->deviceScaleFactor();
     IntRect rectInScreenCoords(rect);
-    rectInScreenCoords.scale(m_scaleFactor);
-    rectInScreenCoords.scale(deviceScaleFactor);
+    rectInScreenCoords.scale(m_scaleFactor * deviceScaleFactor);
 
-    POINT location(rectInScreenCoords .location());
+    POINT location(rectInScreenCoords.location());
     if (!::ClientToScreen(m_webView->window(), &location))
         return;
     rectInScreenCoords.setLocation(location);
 
     int itemCount = m_items.size();
-    // m_itemHeight = m_data.m_itemHeight;
-    m_itemHeight = m_data.m_itemHeight * deviceScaleFactor;
+    m_itemHeight = m_data.m_itemHeight;
 
     int naturalHeight = m_itemHeight * itemCount;
-    // int popupHeight = std::min(maxPopupHeight, naturalHeight);
     int popupHeight = std::min((int)(maxPopupHeight * deviceScaleFactor), naturalHeight);
 
     // The popup should show an integral number of items (i.e. no partial items should be visible)
     popupHeight -= popupHeight % m_itemHeight;
 
     // Next determine its width
-    // int popupWidth = m_data.m_popupWidth;
-    int popupWidth = m_data.m_popupWidth * deviceScaleFactor;
+    int popupWidth = m_data.m_popupWidth;
 
-    // if (naturalHeight > maxPopupHeight) {
     if (naturalHeight > maxPopupHeight * deviceScaleFactor) {
         // We need room for a scrollbar
         popupWidth += ScrollbarTheme::theme().scrollbarThickness(ScrollbarWidth::Thin);
@@ -390,7 +385,6 @@ void WebPopupMenuProxyWin::calculatePositionAndSize(const IntRect& rect)
     int popupX = rectInScreenCoords.x() + m_data.m_clientInsetLeft;
 
     IntRect popupRect(popupX, rectInScreenCoords.maxY(), popupWidth, popupHeight);
-    // popupRect.scale(deviceScaleFactor);
 
     // The popup needs to stay within the bounds of the screen and not overlap any toolbars
     HMONITOR monitor = ::MonitorFromWindow(m_webView->window(), MONITOR_DEFAULTTOPRIMARY);
@@ -848,35 +842,23 @@ void WebPopupMenuProxyWin::paint(const IntRect& damageRect, HDC hdc)
 
     GraphicsContextCairo context(m_DC.get());
 
-    // auto deviceScaleFactor = m_webView->page()->deviceScaleFactor();
-    // IntRect scaledDamageRect = damageRect;
-    // scaledDamageRect.scale(deviceScaleFactor);
     IntRect translatedDamageRect = damageRect;
-    // IntRect translatedDamageRect = scaledDamageRect;
     translatedDamageRect.move(IntSize(0, m_scrollOffset * m_itemHeight));
-    // translatedDamageRect.move(IntSize(0, m_scrollOffset * m_itemHeight * deviceScaleFactor));
-    // translatedDamageRect.scale(deviceScaleFactor);
     m_data.m_notSelectedBackingStore->paint(context, damageRect.location(), translatedDamageRect);
-    // m_data.m_notSelectedBackingStore->paint(context, scaledDamageRect.location(), translatedDamageRect);
 
     IntRect selectedIndexRectInBackingStore(0, focusedIndex() * m_itemHeight, m_data.m_selectedBackingStore->size().width(), m_itemHeight);
-    // IntRect selectedIndexRectInBackingStore(0, focusedIndex() * m_itemHeight * deviceScaleFactor, m_data.m_selectedBackingStore->size().width() * deviceScaleFactor, m_itemHeight * deviceScaleFactor);
-    // selectedIndexRectInBackingStore.scale(deviceScaleFactor);
     IntPoint selectedIndexDstPoint = selectedIndexRectInBackingStore.location();
     selectedIndexDstPoint.move(0, -m_scrollOffset * m_itemHeight);
-    // selectedIndexDstPoint.move(0, -m_scrollOffset * m_itemHeight * deviceScaleFactor);
 
     m_data.m_selectedBackingStore->paint(context, selectedIndexDstPoint, selectedIndexRectInBackingStore);
 
     if (m_scrollbar)
         m_scrollbar->paint(context, damageRect);
-        // m_scrollbar->paint(context, scaledDamageRect);
 
     HWndDC hWndDC;
     HDC localDC = hdc ? hdc : hWndDC.setHWnd(m_popup);
 
     ::BitBlt(localDC, damageRect.x(), damageRect.y(), damageRect.width(), damageRect.height(), m_DC.get(), damageRect.x(), damageRect.y(), SRCCOPY);
-    // ::BitBlt(localDC, scaledDamageRect.x(), scaledDamageRect.y(), scaledDamageRect.width(), scaledDamageRect.height(), m_DC.get(), scaledDamageRect.x(), scaledDamageRect.y(), SRCCOPY);
 }
 
 bool WebPopupMenuProxyWin::setFocusedIndex(int i, bool hotTracking)

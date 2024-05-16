@@ -126,9 +126,6 @@ void RemoteWebInspectorUI::pageUnpaused()
 
 void RemoteWebInspectorUI::changeSheetRect(const FloatRect& rect)
 {
-    // FloatRect scaledRect = rect;
-    // scaledRect.scale(m_page.deviceScaleFactor());
-    // WebProcess::singleton().parentProcessConnection()->send(Messages::RemoteWebInspectorUIProxy::SetSheetRect(scaledRect), m_page.identifier());
     WebProcess::singleton().parentProcessConnection()->send(Messages::RemoteWebInspectorUIProxy::SetSheetRect(rect), m_page.identifier());
 }
 

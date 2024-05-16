@@ -64,8 +64,6 @@ void DrawingAreaProxyWC::sizeDidChange()
 {
     discardBackingStore();
     m_currentBackingStoreStateID++;
-    // send(Messages::DrawingArea::UpdateGeometryWC(m_currentBackingStoreStateID, m_size));
-    // m_webPageProxy->setIntrinsicDeviceScaleFactor(WebCore::deviceScaleFactorForWindow(window()));
     send(Messages::DrawingArea::UpdateGeometryWC(m_currentBackingStoreStateID, m_size, m_webPageProxy->deviceScaleFactor()));
 }
 

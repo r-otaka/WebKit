@@ -5070,6 +5070,11 @@ float WebPageProxy::deviceScaleFactor() const
     return m_customDeviceScaleFactor.value_or(m_intrinsicDeviceScaleFactor);
 }
 
+float WebPageProxy::intrinsicDeviceScaleFactor() const
+{
+    return m_intrinsicDeviceScaleFactor;
+}
+
 void WebPageProxy::setCustomDeviceScaleFactor(float customScaleFactor)
 {
     if (m_customDeviceScaleFactor && m_customDeviceScaleFactor.value() == customScaleFactor)

@@ -241,10 +241,6 @@ WebView::WebView(RECT rect, const API::PageConfiguration& configuration, HWND pa
     m_page = processPool.createWebPage(*m_pageClient, WTFMove(pageConfiguration));
     m_page->initializeWebPage();
 
-    // IntSize windowSize(rect.right - rect.left, rect.bottom - rect.top);
-
-    // if (m_page->drawingArea())
-    //     m_page->drawingArea()->setSize(windowSize);
     m_page->setIntrinsicDeviceScaleFactor(deviceScaleFactorForWindow(m_window));
 
 #if ENABLE(REMOTE_INSPECTOR)
@@ -473,14 +469,12 @@ LRESULT WebView::onKeyEvent(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
     return 0;
 }
 
-// static void drawPageBackground(HDC dc, const WebPageProxy* page, const RECT& rect)
 static void drawPageBackground(HDC dc, const WebPageProxy* page, const IntRect& rect)
 {
     auto& backgroundColor = page->backgroundColor();
     if (!backgroundColor || backgroundColor.value().isVisible())
         return;
 
-    // ::FillRect(dc, &rect, reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1));
     auto scaledRect = rect;
     scaledRect.scale(page->deviceScaleFactor());
     RECT viewRect = scaledRect;
@@ -535,7 +529,6 @@ LRESULT WebView::onPaintEvent(HWND hWnd, UINT message, WPARAM, LPARAM, bool& han
 
     PAINTSTRUCT paintStruct;
     HDC hdc = ::BeginPaint(m_window, &paintStruct);
-    // paint(hdc, paintStruct.rcPaint);
     FloatRect dirtyRect(paintStruct.rcPaint);
     dirtyRect.scale(1 / m_page->deviceScaleFactor());
     paint(hdc, enclosingIntRect(dirtyRect));
@@ -560,15 +553,14 @@ LRESULT WebView::onPrintClientEvent(HWND hWnd, UINT, WPARAM wParam, LPARAM, bool
 
 LRESULT WebView::onSizeEvent(HWND hwnd, UINT, WPARAM, LPARAM lParam, bool& handled)
 {
-    // int width = LOWORD(lParam);
-    // int height = HIWORD(lParam);
-
-    // IntSize windowSize(width, height);
-    m_viewSize = expandedIntSize(FloatSize(LOWORD(lParam), HIWORD(lParam)) / deviceScaleFactorForWindow(hwnd));
+    // FIXME default device scale factor was not used at first loading.
+    if (!m_page)
+        m_viewSize = IntSize(LOWORD(lParam), HIWORD(lParam));
+    else
+        m_viewSize = expandedIntSize(FloatSize(LOWORD(lParam), HIWORD(lParam)) / m_page->deviceScaleFactor());
 
     if (m_page && m_page->drawingArea()) {
         // FIXME specify correctly layerPosition.
-        // m_page->drawingArea()->setSize(windowSize, m_nextResizeScrollOffset);
         m_page->drawingArea()->setSize(m_viewSize, m_nextResizeScrollOffset);
         m_nextResizeScrollOffset = IntSize();
     }
@@ -579,9 +571,8 @@ LRESULT WebView::onSizeEvent(HWND hwnd, UINT, WPARAM, LPARAM lParam, bool& handl
 
 LRESULT WebView::onWindowPositionChangedEvent(HWND hwnd, UINT, WPARAM, LPARAM lParam, bool& handled)
 {
-    if (m_page) {
+    if (m_page)
         m_page->setIntrinsicDeviceScaleFactor(deviceScaleFactorForWindow(hwnd)); // device scale factor (moving bitween another scale displays)
-    }
 
     if (reinterpret_cast<WINDOWPOS*>(lParam)->flags & SWP_SHOWWINDOW)
         updateActiveStateSoon();
@@ -592,9 +583,8 @@ LRESULT WebView::onWindowPositionChangedEvent(HWND hwnd, UINT, WPARAM, LPARAM lP
 
 LRESULT WebView::onDPIChanged(HWND hwnd, UINT, WPARAM, LPARAM lParam, bool& handled)
 {
-    if (m_page) {
+    if (m_page)
         m_page->setIntrinsicDeviceScaleFactor(deviceScaleFactorForWindow(hwnd)); // device scale factor (moving bitween another scale displays)
-    }
 
     return 0;
 }
@@ -890,8 +880,6 @@ void WebView::setScrollOffsetOnNextResize(const IntSize& scrollOffset)
 
 void WebView::setViewNeedsDisplay(const WebCore::Region& region)
 {
-    // const RECT r = region.bounds();
-    // ::InvalidateRect(m_window, &r, true);
     auto rect = region.bounds();
     rect.scale(m_page->deviceScaleFactor());
     const RECT viewRect(rect);

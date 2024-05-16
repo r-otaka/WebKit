@@ -345,7 +345,7 @@ void WebInspectorUIProxy::platformAttach()
     static const unsigned defaultAttachedSize = 300;
     static const unsigned minimumAttachedWidth = 750;
     static const unsigned minimumAttachedHeight = 250;
-    auto deviceScaleFactor = inspectedPage()->deviceScaleFactor();
+    auto deviceScaleFactor = inspectedPage()->intrinsicDeviceScaleFactor();
 
     if (m_inspectorDetachWindow && ::GetParent(m_inspectorViewWindow) == m_inspectorDetachWindow) {
         ::SetParent(m_inspectorViewWindow, m_inspectedViewParentWindow);
@@ -358,12 +358,10 @@ void WebInspectorUIProxy::platformAttach()
     ::GetClientRect(m_inspectedViewWindow, &inspectedWindowRect);
 
     if (m_attachmentSide == AttachmentSide::Bottom) {
-        // unsigned inspectedWindowHeight = inspectedWindowRect.bottom - inspectedWindowRect.top;
         unsigned inspectedWindowHeight = (inspectedWindowRect.bottom - inspectedWindowRect.top) / deviceScaleFactor;
         unsigned maximumAttachedHeight = inspectedWindowHeight * 3 / 4;
         platformSetAttachedWindowHeight(std::max(minimumAttachedHeight, std::min(defaultAttachedSize, maximumAttachedHeight)));
     } else {
-        // unsigned inspectedWindowWidth = inspectedWindowRect.right - inspectedWindowRect.left;
         unsigned inspectedWindowWidth = (inspectedWindowRect.right - inspectedWindowRect.left) / deviceScaleFactor;
         unsigned maximumAttachedWidth = inspectedWindowWidth * 3 / 4;
         platformSetAttachedWindowWidth(std::max(minimumAttachedWidth, std::min(defaultAttachedSize, maximumAttachedWidth)));
@@ -399,7 +397,7 @@ void WebInspectorUIProxy::platformDetach()
 
 void WebInspectorUIProxy::platformSetAttachedWindowHeight(unsigned height)
 {
-    auto deviceScaleFactor = inspectedPage()->deviceScaleFactor();
+    auto deviceScaleFactor = inspectedPage()->intrinsicDeviceScaleFactor();
     height *= deviceScaleFactor;
     auto windowInfo = getInspectedWindowInfo(m_inspectedViewWindow, m_inspectedViewParentWindow);
     ::SetWindowPos(m_inspectorViewWindow, 0, windowInfo.left, windowInfo.parentHeight - height, windowInfo.parentWidth - windowInfo.left, height, SWP_NOZORDER);
@@ -408,7 +406,7 @@ void WebInspectorUIProxy::platformSetAttachedWindowHeight(unsigned height)
 
 void WebInspectorUIProxy::platformSetAttachedWindowWidth(unsigned width)
 {
-    auto deviceScaleFactor = inspectedPage()->deviceScaleFactor();
+    auto deviceScaleFactor = inspectedPage()->intrinsicDeviceScaleFactor();
     width *= deviceScaleFactor;
     auto windowInfo = getInspectedWindowInfo(m_inspectedViewWindow, m_inspectedViewParentWindow);
     ::SetWindowPos(m_inspectorViewWindow, 0, windowInfo.parentWidth - width, windowInfo.top, width, windowInfo.parentHeight - windowInfo.top, SWP_NOZORDER);

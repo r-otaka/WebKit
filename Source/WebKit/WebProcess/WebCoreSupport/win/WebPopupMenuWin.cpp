@@ -27,6 +27,7 @@
 #include "WebPopupMenu.h"
 
 #include "PlatformPopupMenuData.h"
+#include "WebPage.h"
 #include <WebCore/LengthFunctions.h>
 #include <WebCore/PopupMenuClient.h>
 #include <WebCore/RenderTheme.h>
@@ -40,11 +41,17 @@ static const int popupWindowBorderWidth = 1;
 
 void WebPopupMenu::setUpPlatformData(const WebCore::IntRect& pageCoordinates, PlatformPopupMenuData& data)
 {
-    // auto deviceScaleFactor = m_webView->page()->deviceScaleFactor();
+    auto deviceScaleFactor = page()->deviceScaleFactor();
 
+    WebCore::IntRect scaledPageCoordinates = pageCoordinates;
+    scaledPageCoordinates.scale(deviceScaleFactor);
     int itemCount = m_popupClient->listSize();
 
     auto font = m_popupClient->menuStyle().font();
+    auto fontDescription = font.fontDescription();
+    fontDescription.setComputedSize(fontDescription.computedSize() * deviceScaleFactor);
+    font = FontCascade(WTFMove(fontDescription), font);
+    font.update(m_popupClient->fontSelector());
 
     data.m_clientPaddingLeft = m_popupClient->clientPaddingLeft();
     data.m_clientPaddingRight = m_popupClient->clientPaddingRight();
@@ -75,7 +82,7 @@ void WebPopupMenu::setUpPlatformData(const WebCore::IntRect& pageCoordinates, Pl
     data.m_popupWidth = popupWidth;
 
     // The backing stores should be drawn at least as wide as the control on the page to match the width of the popup window we'll create.
-    int backingStoreWidth = std::max(pageCoordinates.width() - m_popupClient->clientInsetLeft() - m_popupClient->clientInsetRight(), popupWidth);
+    int backingStoreWidth = std::max(scaledPageCoordinates.width() - m_popupClient->clientInsetLeft() - m_popupClient->clientInsetRight(), popupWidth);
 
     IntSize backingStoreSize(backingStoreWidth, (itemCount * data.m_itemHeight));
     data.m_notSelectedBackingStore = ShareableBitmap::create({ backingStoreSize });
@@ -101,7 +108,7 @@ void WebPopupMenu::setUpPlatformData(const WebCore::IntRect& pageCoordinates, Pl
         if (itemStyle.isVisible()) {
             notSelectedBackingStoreContext->fillRect(itemRect, optionBackgroundColor);
             selectedBackingStoreContext->fillRect(itemRect, activeOptionBackgroundColor);
-        }
+       }
 
         if (m_popupClient->itemIsSeparator(index)) {
             IntRect separatorRect(itemRect.x() + separatorPadding, itemRect.y() + (itemRect.height() - separatorHeight) / 2, itemRect.width() - 2 * separatorPadding, separatorHeight);

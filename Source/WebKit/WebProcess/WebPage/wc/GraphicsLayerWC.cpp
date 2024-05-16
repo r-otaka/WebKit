@@ -37,18 +37,6 @@
 namespace WebKit {
 using namespace WebCore;
 
-// FloatRect scaled(FloatRect rect, float scale)
-// {
-//     rect.scale(scale);
-//     return rect;
-// }
-
-// FloatSize scaled(FloatSize rect, float scale)
-// {
-//     rect.scale(scale);
-//     return rect;
-// }
-
 auto scaled(auto rect, float scale)
 {
     rect.scale(scale);
@@ -79,18 +67,11 @@ public:
             repainted = true;
             float deviceScaleFactor = m_owner.deviceScaleFactor(); // device scale factor
             auto& dirtyRect = tile.dirtyRect();
-            // auto dirtyRect = scaled(tile.dirtyRect(), deviceScaleFactor);
-            // tileUpdate.dirtyRect = dirtyRect;
-            // tileUpdate.dirtyRect = WebCore::enclosingIntRect(scaled(dirtyRect, deviceScaleFactor)); // something WebInspector error has occured
             tileUpdate.dirtyRect = scaled(dirtyRect, deviceScaleFactor);
-            // tileUpdate.coverageRect = scaled(m_coverageRect, deviceScaleFactor);
             auto image = m_owner.createImageBuffer(dirtyRect.size());
-            // auto image = m_owner.createImageBuffer(tileUpdate.dirtyRect.size());
             auto& context = image->context();
             context.translate(-dirtyRect.x(), -dirtyRect.y());
             m_owner.paintGraphicsLayerContents(context, dirtyRect);
-            // context.translate(-m_dirtyRect.x(), -m_dirtyRect.y());
-            // m_owner.paintGraphicsLayerContents(context, m_dirtyRect);
             image->flushDrawingContextAsync();
             tileUpdate.backingStore.setImageBuffer(WTFMove(image));
             update.background.tileUpdates.append(WTFMove(tileUpdate));
