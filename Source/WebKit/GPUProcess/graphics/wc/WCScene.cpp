@@ -250,10 +250,6 @@ std::optional<UpdateInfo> WCScene::update(WCUpdateInfo&& update)
     auto rootLayer = &m_layers.get(update.rootLayer)->texmapLayer;
     rootLayer->applyAnimationsRecursively(MonotonicTime::now());
 
-    WebCore::IntSize windowSize = expandedIntSize(rootLayer->size());
-    if (windowSize.isEmpty())
-        return std::nullopt;
-
     WebCore::BitmapTexture* surface = nullptr;
     RefPtr<WebCore::BitmapTexture> texture;
     bool showFPS = true;

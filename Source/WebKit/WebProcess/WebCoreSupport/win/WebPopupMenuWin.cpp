@@ -94,8 +94,8 @@ void WebPopupMenu::setUpPlatformData(const WebCore::IntRect& pageCoordinates, Pl
     Color activeOptionBackgroundColor = RenderTheme::singleton().activeListBoxSelectionBackgroundColor({ });
     Color activeOptionTextColor = RenderTheme::singleton().activeListBoxSelectionForegroundColor({ });
 
-    for (int y = 0; y < backingStoreSize.height(); y += data.m_itemHeight) {
-        int index = y / data.m_itemHeight;
+    for (int index = 0; index < itemCount; ++index) {
+        int y = index * data.m_itemHeight;
 
         PopupMenuStyle itemStyle = m_popupClient->itemStyle(index);
 
@@ -108,7 +108,7 @@ void WebPopupMenu::setUpPlatformData(const WebCore::IntRect& pageCoordinates, Pl
         if (itemStyle.isVisible()) {
             notSelectedBackingStoreContext->fillRect(itemRect, optionBackgroundColor);
             selectedBackingStoreContext->fillRect(itemRect, activeOptionBackgroundColor);
-       }
+        }
 
         if (m_popupClient->itemIsSeparator(index)) {
             IntRect separatorRect(itemRect.x() + separatorPadding, itemRect.y() + (itemRect.height() - separatorHeight) / 2, itemRect.width() - 2 * separatorPadding, separatorHeight);
@@ -148,8 +148,9 @@ void WebPopupMenu::setUpPlatformData(const WebCore::IntRect& pageCoordinates, Pl
             }
             int textY = itemRect.y() + itemFontCascade.metricsOfPrimaryFont().intAscent() + (itemRect.height() - itemFontCascade.metricsOfPrimaryFont().intHeight()) / 2;
 
-            notSelectedBackingStoreContext->drawBidiText(itemFontCascade, textRun, IntPoint(textX, textY));
-            selectedBackingStoreContext->drawBidiText(itemFontCascade, textRun, IntPoint(textX, textY));
+            const IntPoint textPoint = IntPoint(textX, textY);
+            notSelectedBackingStoreContext->drawBidiText(itemFontCascade, textRun, textPoint);
+            selectedBackingStoreContext->drawBidiText(itemFontCascade, textRun, textPoint);
         }
     }
 }

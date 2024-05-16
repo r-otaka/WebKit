@@ -542,6 +542,9 @@ class Executive(AbstractExecutive):
                     mod_env[key] = value
             env = mod_env
 
+        # Change charcode to 65001(UTF-8) on Windows
+        if self._is_native_win:
+            subprocess.call(['chcp', '65001'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL, shell=True)
         # Python 3 treats Popen as a context manager, we should allow this in Python 2
         result = subprocess.Popen(string_args, env=env, **kwargs)
         if not callable(getattr(result, "__enter__", None)) and not callable(getattr(result, "__exit__", None)):

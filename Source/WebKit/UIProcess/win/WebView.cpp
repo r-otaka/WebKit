@@ -164,7 +164,7 @@ LRESULT WebView::wndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         lResult = onWindowPositionChangedEvent(hWnd, message, wParam, lParam, handled);
         break;
     case WM_DPICHANGED:
-        lResult = onDPIChanged(hWnd, message, wParam, lParam, handled);
+        lResult = onDPIChangedEvent(hWnd, message, wParam, lParam, handled);
         break;
     case WM_SETFOCUS:
         lResult = onSetFocusEvent(hWnd, message, wParam, lParam, handled);
@@ -571,6 +571,7 @@ LRESULT WebView::onSizeEvent(HWND hwnd, UINT, WPARAM, LPARAM lParam, bool& handl
 
 LRESULT WebView::onWindowPositionChangedEvent(HWND hwnd, UINT, WPARAM, LPARAM lParam, bool& handled)
 {
+    // FIXME: This process is desired doing at onDPIChangedEvent.
     if (m_page)
         m_page->setIntrinsicDeviceScaleFactor(deviceScaleFactorForWindow(hwnd)); // device scale factor (moving bitween another scale displays)
 
@@ -581,7 +582,7 @@ LRESULT WebView::onWindowPositionChangedEvent(HWND hwnd, UINT, WPARAM, LPARAM lP
     return 0;
 }
 
-LRESULT WebView::onDPIChanged(HWND hwnd, UINT, WPARAM, LPARAM lParam, bool& handled)
+LRESULT WebView::onDPIChangedEvent(HWND hwnd, UINT, WPARAM, LPARAM lParam, bool& handled)
 {
     if (m_page)
         m_page->setIntrinsicDeviceScaleFactor(deviceScaleFactorForWindow(hwnd)); // device scale factor (moving bitween another scale displays)

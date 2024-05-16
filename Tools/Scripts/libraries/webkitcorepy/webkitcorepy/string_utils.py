@@ -43,11 +43,7 @@ def encode(string, encoding='utf-8', errors='strict', target_type=bytes):
 
 def decode(data, encoding='utf-8', errors='strict', target_type=unicode):
     if type(data) == bytes and target_type == unicode:
-        try:
-            return data.decode(encoding, errors=errors)
-        except UnicodeDecodeError as e:
-            # FOR Japanese Environment
-            return data.decode("shift-jis", errors=errors)
+        return data.decode(encoding, errors=errors)
     return data
 
 

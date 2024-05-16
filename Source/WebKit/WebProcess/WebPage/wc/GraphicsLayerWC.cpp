@@ -67,7 +67,10 @@ public:
             repainted = true;
             float deviceScaleFactor = m_owner.deviceScaleFactor(); // device scale factor
             auto& dirtyRect = tile.dirtyRect();
-            tileUpdate.dirtyRect = scaled(dirtyRect, deviceScaleFactor);
+            // FIXME: Using enclosingIntRect causes boundary error.
+            // tileUpdate.dirtyRect = WebCore::enclosingIntRect(scaledRect(dirtyRect, deviceScaleFactor));
+            // FIXME: Is this should not be copied?
+            tileUpdate.dirtyRect = scaledRect(dirtyRect, deviceScaleFactor);
             auto image = m_owner.createImageBuffer(dirtyRect.size());
             auto& context = image->context();
             context.translate(-dirtyRect.x(), -dirtyRect.y());

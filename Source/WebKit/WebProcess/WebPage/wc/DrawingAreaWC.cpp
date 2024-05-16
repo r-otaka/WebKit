@@ -361,8 +361,6 @@ void DrawingAreaWC::sendUpdateNonAC()
     Ref webPage = m_webPage.get();
     ASSERT(webPage->bounds().contains(bounds));
     IntSize bitmapSize = bounds.size();
-    // float deviceScaleFactor = webPage->corePage()->deviceScaleFactor();
-    // bitmapSize.scale(deviceScaleFactor); // device scale factor
 
     auto image = createImageBuffer(bitmapSize);
     auto rects = m_dirtyRegion.rects();
