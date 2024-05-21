@@ -43,35 +43,17 @@ void WebPopupMenu::setUpPlatformData(const WebCore::IntRect& pageCoordinates, Pl
 {
     auto deviceScaleFactor = page()->deviceScaleFactor();
 
-    // WebCore::IntRect scaledPageCoordinates = pageCoordinates;
-    // scaledPageCoordinates.scale(deviceScaleFactor);
     int itemCount = m_popupClient->listSize();
 
     auto font = m_popupClient->menuStyle().font();
-    // auto fontDescription = font.fontDescription();
-    // fontDescription.setComputedSize(fontDescription.computedSize() * deviceScaleFactor);
-    // font = FontCascade(WTFMove(fontDescription), font);
-    // font.update(m_popupClient->fontSelector());
 
     data.m_clientPaddingLeft = m_popupClient->clientPaddingLeft();
     data.m_clientPaddingRight = m_popupClient->clientPaddingRight();
     data.m_clientInsetLeft = m_popupClient->clientInsetLeft();
     data.m_clientInsetRight = m_popupClient->clientInsetRight();
     data.m_itemHeight = font.metricsOfPrimaryFont().intHeight() + 1;
-
-    // Windows can set custom device scale factor but WebKit dose not support it.
-    // Only available in 25% increments.
-    int remainderDeviceScaleFactor = static_cast<int>(deviceScaleFactor * 4) % 4;
-    switch (remainderDeviceScaleFactor) {
-    case 1:
-    case 3:
-        if (data.m_itemHeight % 4)
-            data.m_itemHeight += (4 - data.m_itemHeight % 4);
-        break;
-    case 2:
-        data.m_itemHeight += data.m_itemHeight % 2;
-        break;
-    }
+    data.m_itemHeight = ceil(data.m_itemHeight * deviceScaleFactor);
+    float itemHeightInDIP = data.m_itemHeight / deviceScaleFactor;
 
     int popupWidth = 0;
     for (size_t i = 0; i < itemCount; ++i) {
@@ -98,29 +80,28 @@ void WebPopupMenu::setUpPlatformData(const WebCore::IntRect& pageCoordinates, Pl
     // The backing stores should be drawn at least as wide as the control on the page to match the width of the popup window we'll create.
     int backingStoreWidth = std::max(pageCoordinates.width() - m_popupClient->clientInsetLeft() - m_popupClient->clientInsetRight(), popupWidth);
 
-    IntSize backingStoreSize(backingStoreWidth, (itemCount * data.m_itemHeight));
-    backingStoreSize.scale(deviceScaleFactor);
+    IntSize backingStoreSize(ceil(backingStoreWidth * deviceScaleFactor), (itemCount * data.m_itemHeight));
     data.m_notSelectedBackingStore = ShareableBitmap::create({ backingStoreSize });
     data.m_selectedBackingStore = ShareableBitmap::create({ backingStoreSize });
 
     std::unique_ptr<GraphicsContext> notSelectedBackingStoreContext = data.m_notSelectedBackingStore->createGraphicsContext();
     std::unique_ptr<GraphicsContext> selectedBackingStoreContext = data.m_selectedBackingStore->createGraphicsContext();
 
-    notSelectedBackingStoreContext->scale(deviceScaleFactor);
-    selectedBackingStoreContext->scale(deviceScaleFactor);
+    notSelectedBackingStoreContext->applyDeviceScaleFactor(deviceScaleFactor);
+    selectedBackingStoreContext->applyDeviceScaleFactor(deviceScaleFactor);
 
     Color activeOptionBackgroundColor = RenderTheme::singleton().activeListBoxSelectionBackgroundColor({ });
     Color activeOptionTextColor = RenderTheme::singleton().activeListBoxSelectionForegroundColor({ });
 
     for (size_t index = 0; index < itemCount; ++index) {
-        int y = index * data.m_itemHeight;
+        float y = index * itemHeightInDIP;
 
         PopupMenuStyle itemStyle = m_popupClient->itemStyle(index);
 
         Color optionBackgroundColor = itemStyle.backgroundColor();
         Color optionTextColor = itemStyle.foregroundColor();
 
-        IntRect itemRect(0, y, backingStoreWidth, data.m_itemHeight);
+        FloatRect itemRect(0, y, backingStoreWidth, itemHeightInDIP);
 
         // Draw the background for this menu item
         if (itemStyle.isVisible()) {
@@ -129,7 +110,7 @@ void WebPopupMenu::setUpPlatformData(const WebCore::IntRect& pageCoordinates, Pl
         }
 
         if (m_popupClient->itemIsSeparator(index)) {
-            IntRect separatorRect(itemRect.x() + separatorPadding, itemRect.y() + (itemRect.height() - separatorHeight) / 2, itemRect.width() - 2 * separatorPadding, separatorHeight);
+            FloatRect separatorRect(itemRect.x() + separatorPadding, itemRect.y() + (itemRect.height() - separatorHeight) / 2, itemRect.width() - 2 * separatorPadding, separatorHeight);
 
             notSelectedBackingStoreContext->fillRect(separatorRect, optionTextColor);
             selectedBackingStoreContext->fillRect(separatorRect, activeOptionTextColor);
@@ -157,16 +138,16 @@ void WebPopupMenu::setUpPlatformData(const WebCore::IntRect& pageCoordinates, Pl
             if (m_popupClient->menuStyle().textDirection() == TextDirection::LTR) {
                 textX = std::max<int>(0, m_popupClient->clientPaddingLeft() - m_popupClient->clientInsetLeft());
                 if (RenderTheme::singleton().popupOptionSupportsTextIndent())
-                    textX += minimumIntValueForLength(itemStyle.textIndent(), itemRect.width());
+                    textX += minimumIntValueForLength(itemStyle.textIndent(), LayoutUnit::fromFloatRound(itemRect.width()));
             } else {
                 textX = itemRect.width() - m_popupClient->menuStyle().font().width(textRun);
                 textX = std::min<int>(textX, textX - m_popupClient->clientPaddingRight() + m_popupClient->clientInsetRight());
                 if (RenderTheme::singleton().popupOptionSupportsTextIndent())
-                    textX -= minimumIntValueForLength(itemStyle.textIndent(), itemRect.width());
+                    textX -= minimumIntValueForLength(itemStyle.textIndent(), LayoutUnit::fromFloatRound(itemRect.width()));
             }
-            int textY = itemRect.y() + itemFontCascade.metricsOfPrimaryFont().intAscent() + (itemRect.height() - itemFontCascade.metricsOfPrimaryFont().intHeight()) / 2;
+            float textY = itemRect.y() + itemFontCascade.metricsOfPrimaryFont().intAscent() + (itemRect.height() - itemFontCascade.metricsOfPrimaryFont().intHeight()) / 2;
 
-            const IntPoint textPoint = IntPoint(textX, textY);
+            FloatPoint textPoint = { static_cast<float>(textX), textY };
             notSelectedBackingStoreContext->drawBidiText(itemFontCascade, textRun, textPoint);
             selectedBackingStoreContext->drawBidiText(itemFontCascade, textRun, textPoint);
         }

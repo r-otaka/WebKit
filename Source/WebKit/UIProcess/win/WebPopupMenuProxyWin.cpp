@@ -360,7 +360,7 @@ void WebPopupMenuProxyWin::calculatePositionAndSize(const IntRect& rect)
     rectInScreenCoords.setLocation(location);
 
     int itemCount = m_items.size();
-    m_itemHeight = m_data.m_itemHeight * deviceScaleFactor;
+    m_itemHeight = m_data.m_itemHeight;
 
     int naturalHeight = m_itemHeight * itemCount;
     int physicalMaxPopupHeight = static_cast<int>(maxPopupHeight * deviceScaleFactor);
