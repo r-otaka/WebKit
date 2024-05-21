@@ -360,7 +360,7 @@ void WebPopupMenuProxyWin::calculatePositionAndSize(const IntRect& rect)
     rectInScreenCoords.setLocation(location);
 
     int itemCount = m_items.size();
-    m_itemHeight = m_data.m_itemHeight;
+    m_itemHeight = m_data.m_itemHeight * deviceScaleFactor;
 
     int naturalHeight = m_itemHeight * itemCount;
     int physicalMaxPopupHeight = static_cast<int>(maxPopupHeight * deviceScaleFactor);
@@ -377,7 +377,8 @@ void WebPopupMenuProxyWin::calculatePositionAndSize(const IntRect& rect)
         popupWidth += ScrollbarTheme::theme().scrollbarThickness(ScrollbarWidth::Thin);
     }
 
-    popupHeight += 2 * popupWindowBorderWidth;
+    popupHeight += 2 * popupWindowBorderWidth * deviceScaleFactor;
+    popupWidth *= deviceScaleFactor;
 
     // The popup should be at least as wide as the control on the page
     popupWidth = std::max(rectInScreenCoords.width() - m_data.m_clientInsetLeft - m_data.m_clientInsetRight, popupWidth);

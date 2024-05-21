@@ -43,21 +43,35 @@ void WebPopupMenu::setUpPlatformData(const WebCore::IntRect& pageCoordinates, Pl
 {
     auto deviceScaleFactor = page()->deviceScaleFactor();
 
-    WebCore::IntRect scaledPageCoordinates = pageCoordinates;
-    scaledPageCoordinates.scale(deviceScaleFactor);
+    // WebCore::IntRect scaledPageCoordinates = pageCoordinates;
+    // scaledPageCoordinates.scale(deviceScaleFactor);
     int itemCount = m_popupClient->listSize();
 
     auto font = m_popupClient->menuStyle().font();
-    auto fontDescription = font.fontDescription();
-    fontDescription.setComputedSize(fontDescription.computedSize() * deviceScaleFactor);
-    font = FontCascade(WTFMove(fontDescription), font);
-    font.update(m_popupClient->fontSelector());
+    // auto fontDescription = font.fontDescription();
+    // fontDescription.setComputedSize(fontDescription.computedSize() * deviceScaleFactor);
+    // font = FontCascade(WTFMove(fontDescription), font);
+    // font.update(m_popupClient->fontSelector());
 
     data.m_clientPaddingLeft = m_popupClient->clientPaddingLeft();
     data.m_clientPaddingRight = m_popupClient->clientPaddingRight();
     data.m_clientInsetLeft = m_popupClient->clientInsetLeft();
     data.m_clientInsetRight = m_popupClient->clientInsetRight();
     data.m_itemHeight = font.metricsOfPrimaryFont().intHeight() + 1;
+
+    // Windows can set custom device scale factor but WebKit dose not support it.
+    // Only available in 25% increments.
+    int remainderDeviceScaleFactor = static_cast<int>(deviceScaleFactor * 4) % 4;
+    switch (remainderDeviceScaleFactor) {
+    case 1:
+    case 3:
+        if (data.m_itemHeight % 4)
+            data.m_itemHeight += (4 - data.m_itemHeight % 4);
+        break;
+    case 2:
+        data.m_itemHeight += data.m_itemHeight % 2;
+        break;
+    }
 
     int popupWidth = 0;
     for (size_t i = 0; i < itemCount; ++i) {
@@ -82,14 +96,18 @@ void WebPopupMenu::setUpPlatformData(const WebCore::IntRect& pageCoordinates, Pl
     data.m_popupWidth = popupWidth;
 
     // The backing stores should be drawn at least as wide as the control on the page to match the width of the popup window we'll create.
-    int backingStoreWidth = std::max(scaledPageCoordinates.width() - m_popupClient->clientInsetLeft() - m_popupClient->clientInsetRight(), popupWidth);
+    int backingStoreWidth = std::max(pageCoordinates.width() - m_popupClient->clientInsetLeft() - m_popupClient->clientInsetRight(), popupWidth);
 
     IntSize backingStoreSize(backingStoreWidth, (itemCount * data.m_itemHeight));
+    backingStoreSize.scale(deviceScaleFactor);
     data.m_notSelectedBackingStore = ShareableBitmap::create({ backingStoreSize });
     data.m_selectedBackingStore = ShareableBitmap::create({ backingStoreSize });
 
     std::unique_ptr<GraphicsContext> notSelectedBackingStoreContext = data.m_notSelectedBackingStore->createGraphicsContext();
     std::unique_ptr<GraphicsContext> selectedBackingStoreContext = data.m_selectedBackingStore->createGraphicsContext();
+
+    notSelectedBackingStoreContext->scale(deviceScaleFactor);
+    selectedBackingStoreContext->scale(deviceScaleFactor);
 
     Color activeOptionBackgroundColor = RenderTheme::singleton().activeListBoxSelectionBackgroundColor({ });
     Color activeOptionTextColor = RenderTheme::singleton().activeListBoxSelectionForegroundColor({ });
