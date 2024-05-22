@@ -500,7 +500,10 @@ void WebPopupMenuProxyWin::scrollTo(int offset)
     RECT r = listRect;
     ::ScrollWindowEx(m_popup, 0, scrolledLines * m_itemHeight, &r, 0, 0, 0, flags);
     if (m_scrollbar) {
-        r = m_scrollbar->frameRect();
+        // r = m_scrollbar->frameRect();
+        IntRect scrollRect = m_scrollbar->frameRect();
+        scrollRect.scale(m_webView->page()->deviceScaleFactor());
+        r = scrollRect;
         ::InvalidateRect(m_popup, &r, TRUE);
     }
     ::UpdateWindow(m_popup);
@@ -529,7 +532,10 @@ LRESULT WebPopupMenuProxyWin::onSize(HWND hWnd, UINT message, WPARAM, LPARAM lPa
         return 0;
 
     IntSize size(LOWORD(lParam), HIWORD(lParam));
-    m_scrollbar->setFrameRect(IntRect(size.width() - m_scrollbar->width(), 0, m_scrollbar->width(), size.height()));
+    auto deviceScaleFactor = m_webView->page()->deviceScaleFactor();
+    IntSize scaledSize(ceil(size.width() / deviceScaleFactor), ceil(size.height() / deviceScaleFactor));
+    m_scrollbar->setFrameRect(IntRect(scaledSize.width() - m_scrollbar->width(), 0, m_scrollbar->width(), scaledSize.height()));
+    // m_scrollbar->setFrameRect(IntRect(0, 0, m_scrollbar->width(), scaledSize.height()));
 
     int visibleItems = this->visibleItems();
     m_scrollbar->setEnabled(visibleItems < m_items.size());
@@ -633,8 +639,10 @@ LRESULT WebPopupMenuProxyWin::onMouseMove(HWND hWnd, UINT message, WPARAM wParam
 {
     handled = true;
 
+    float deviceScaleFactor = m_webView->page()->deviceScaleFactor();
     IntPoint mousePoint(MAKEPOINTS(lParam));
     if (m_scrollbar) {
+        mousePoint.scale(1 / deviceScaleFactor);
         IntRect scrollBarRect = m_scrollbar->frameRect();
         if (scrollbarCapturingMouse() || scrollBarRect.contains(mousePoint)) {
             // Put the point into coordinates relative to the scroll bar
@@ -643,6 +651,7 @@ LRESULT WebPopupMenuProxyWin::onMouseMove(HWND hWnd, UINT message, WPARAM wParam
             m_scrollbar->mouseMoved(event);
             return 0;
         }
+        mousePoint.scale(deviceScaleFactor);
     }
 
     BOOL shouldHotTrack = FALSE;
@@ -674,8 +683,10 @@ LRESULT WebPopupMenuProxyWin::onLButtonDown(HWND hWnd, UINT message, WPARAM wPar
 {
     handled = true;
 
+    float deviceScaleFactor = m_webView->page()->deviceScaleFactor();
     IntPoint mousePoint(MAKEPOINTS(lParam));
     if (m_scrollbar) {
+        mousePoint.scale(1 / deviceScaleFactor);
         IntRect scrollBarRect = m_scrollbar->frameRect();
         if (scrollBarRect.contains(mousePoint)) {
             // Put the point into coordinates relative to the scroll bar
@@ -685,6 +696,7 @@ LRESULT WebPopupMenuProxyWin::onLButtonDown(HWND hWnd, UINT message, WPARAM wPar
             setScrollbarCapturingMouse(true);
             return 0;
         }
+        mousePoint.scale(deviceScaleFactor);
     }
 
     // If the mouse is inside the window, update the focused index. Otherwise, 
@@ -705,8 +717,10 @@ LRESULT WebPopupMenuProxyWin::onLButtonUp(HWND hWnd, UINT message, WPARAM wParam
 {
     handled = true;
 
+    float deviceScaleFactor = m_webView->page()->deviceScaleFactor();
     IntPoint mousePoint(MAKEPOINTS(lParam));
     if (m_scrollbar) {
+        mousePoint.scale(1 / deviceScaleFactor);
         IntRect scrollBarRect = m_scrollbar->frameRect();
         if (scrollbarCapturingMouse() || scrollBarRect.contains(mousePoint)) {
             setScrollbarCapturingMouse(false);
@@ -719,6 +733,7 @@ LRESULT WebPopupMenuProxyWin::onLButtonUp(HWND hWnd, UINT message, WPARAM wParam
             ::InvalidateRect(m_popup, &r, TRUE);
             return 0;
         }
+        mousePoint.scale(deviceScaleFactor);
     }
     // Only hide the popup if the mouse is inside the popup window.
     RECT bounds;
@@ -854,8 +869,17 @@ void WebPopupMenuProxyWin::paint(const IntRect& damageRect, HDC hdc)
 
     m_data.m_selectedBackingStore->paint(context, selectedIndexDstPoint, selectedIndexRectInBackingStore);
 
-    if (m_scrollbar)
+    if (m_scrollbar) {
+        context.save();
+        context.applyDeviceScaleFactor(m_webView->page()->deviceScaleFactor());
         m_scrollbar->paint(context, damageRect);
+        
+        Color color(SRGBA<uint8_t> {static_cast<unsigned char>(std::rand() % 256), static_cast<unsigned char>(std::rand() % 256), static_cast<unsigned char>(std::rand() % 256)}, Color::Flags::Semantic);
+        context.fillRect(FloatRect(0, 0, m_windowRect.width(), m_windowRect.height()), color);
+
+        context.restore();
+    }
+
 
     HWndDC hWndDC;
     HDC localDC = hdc ? hdc : hWndDC.setHWnd(m_popup);
