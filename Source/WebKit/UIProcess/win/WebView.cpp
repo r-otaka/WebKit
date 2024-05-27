@@ -475,9 +475,13 @@ static void drawPageBackground(HDC dc, const WebPageProxy* page, const IntRect& 
     if (!backgroundColor || backgroundColor.value().isVisible())
         return;
 
-    auto scaledRect = rect;
+    // auto scaledRect = rect;
+    // scaledRect.scale(page->deviceScaleFactor());
+    // RECT viewRect = scaledRect;
+    
+    FloatRect scaledRect = rect;
     scaledRect.scale(page->deviceScaleFactor());
-    RECT viewRect = scaledRect;
+    RECT viewRect(enclosingIntRect(scaledRect));
     ::FillRect(dc, &viewRect, reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1));
 }
 
@@ -878,9 +882,9 @@ void WebView::setScrollOffsetOnNextResize(const IntSize& scrollOffset)
 
 void WebView::setViewNeedsDisplay(const WebCore::Region& region)
 {
-    auto rect = region.bounds();
+    FloatRect rect = region.bounds();
     rect.scale(m_page->deviceScaleFactor());
-    const RECT viewRect(rect);
+    const RECT viewRect(enclosingIntRect(rect));
     ::InvalidateRect(m_window, &viewRect, true);
 }
 

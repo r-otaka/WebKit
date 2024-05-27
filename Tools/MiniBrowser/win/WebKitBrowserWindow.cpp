@@ -202,6 +202,7 @@ WebKitBrowserWindow::WebKitBrowserWindow(BrowserWindowClient& client, WKPageConf
 
     // FIXME: The current design of WebKit cannot support fractional device scale factor.
     // WKPageSetCustomBackingScaleFactor(page, 1);
+    updateDeviceScaleFactor();
     resetZoom();
 }
 
@@ -223,6 +224,15 @@ void WebKitBrowserWindow::updateProxySettings()
     auto url = createWKURL(m_proxy.url);
     auto excludeHosts = createWKString(m_proxy.excludeHosts);
     WKWebsiteDataStoreEnableCustomNetworkProxySettings(websiteDataStore, url.get(), excludeHosts.get());
+}
+
+void WebKitBrowserWindow::updateDeviceScaleFactor()
+{
+    auto page = WKViewGetPage(m_view.get());
+    float deviceScaleFactor = WebCore::deviceScaleFactorForWindow(hwnd());
+    int roundedDeviceScaleFactor = std::round(deviceScaleFactor);
+    WKPageSetCustomBackingScaleFactor(page, roundedDeviceScaleFactor);
+    customPageZoom = deviceScaleFactor / roundedDeviceScaleFactor;
 }
 
 HRESULT WebKitBrowserWindow::init()
@@ -400,7 +410,8 @@ void WebKitBrowserWindow::resetZoom()
 {
     auto page = WKViewGetPage(m_view.get());
     // WKPageSetPageZoomFactor(page, WebCore::deviceScaleFactorForWindow(hwnd()));
-    WKPageSetPageZoomFactor(page, 1);
+    // WKPageSetPageZoomFactor(page, 1);
+    WKPageSetPageZoomFactor(page, customPageZoom);
 }
 
 void WebKitBrowserWindow::zoomIn()

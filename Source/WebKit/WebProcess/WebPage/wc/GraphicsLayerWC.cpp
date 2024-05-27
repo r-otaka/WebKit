@@ -36,9 +36,11 @@
 
 namespace WebKit {
 using namespace WebCore;
-
-auto scaled(auto rect, float scale)
+IntRect scaled(IntRect rect, float scale)
 {
+    // FloatRect scaledRect = rect;
+    // scaledRect.scale(scale);
+    // return enclosingIntRect(scaledRect);
     rect.scale(scale);
     return rect;
 }
@@ -591,7 +593,7 @@ void GraphicsLayerWC::flushCompositingStateForThisLayerOnly()
         update.background.color = backgroundColor();
         if (drawsContent() && contentsAreVisible()) {
             update.background.hasBackingStore = true;
-            update.background.backingStoreSize = WebCore::expandedIntSize(scaled(size(), deviceScaleFactor()));
+            update.background.backingStoreSize = WebCore::expandedIntSize(size() * deviceScaleFactor());
             if (m_tiledBacking->paintAndFlush(update)) {
                 incrementRepaintCount();
                 update.changes.add(WCLayerChange::RepaintCount);
