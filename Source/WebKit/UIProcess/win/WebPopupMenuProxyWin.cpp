@@ -350,7 +350,7 @@ void WebPopupMenuProxyWin::hidePopupMenu()
 
 void WebPopupMenuProxyWin::calculatePositionAndSize(const IntRect& rect)
 {
-    auto deviceScaleFactor = m_webView->page()->deviceScaleFactor();
+    float deviceScaleFactor = m_webView->page()->deviceScaleFactor();
     IntRect rectInScreenCoords(rect);
     rectInScreenCoords.scale(m_scaleFactor * deviceScaleFactor);
 
@@ -447,7 +447,7 @@ void WebPopupMenuProxyWin::invalidateItem(int index)
     damageRect.setY(m_itemHeight * (index - m_scrollOffset));
     damageRect.setHeight(m_itemHeight);
     if (m_scrollbar)
-        damageRect.setWidth(damageRect.width() - m_scrollbar->frameRect().width());
+        damageRect.setWidth(damageRect.width() - m_scrollbar->frameRect().width() * m_webView->page()->deviceScaleFactor());
 
     RECT r = damageRect;
     ::InvalidateRect(m_popup, &r, TRUE);
@@ -502,12 +502,15 @@ void WebPopupMenuProxyWin::scrollTo(int offset)
 #endif
 
     IntRect listRect = clientRect();
+    float deviceScaleFactor = m_webView->page()->deviceScaleFactor();
     if (m_scrollbar)
-        listRect.setWidth(listRect.width() - m_scrollbar->frameRect().width());
+        listRect.setWidth(listRect.width() - m_scrollbar->frameRect().width() * deviceScaleFactor);
     RECT r = listRect;
     ::ScrollWindowEx(m_popup, 0, scrolledLines * m_itemHeight, &r, 0, 0, 0, flags);
     if (m_scrollbar) {
-        r = m_scrollbar->frameRect();
+        IntRect scrollRect = m_scrollbar->frameRect();
+        scrollRect.scale(deviceScaleFactor);
+        r = scrollRect;
         ::InvalidateRect(m_popup, &r, TRUE);
     }
     ::UpdateWindow(m_popup);
@@ -517,6 +520,7 @@ void WebPopupMenuProxyWin::invalidateScrollbarRect(Scrollbar& scrollbar, const I
 {
     IntRect scrollRect = rect;
     scrollRect.move(scrollbar.x(), scrollbar.y());
+    scrollRect.scale(m_webView->page()->deviceScaleFactor());
     RECT r = scrollRect;
     ::InvalidateRect(m_popup, &r, false);
 }
@@ -536,7 +540,9 @@ LRESULT WebPopupMenuProxyWin::onSize(HWND hWnd, UINT message, WPARAM, LPARAM lPa
         return 0;
 
     IntSize size(LOWORD(lParam), HIWORD(lParam));
-    m_scrollbar->setFrameRect(IntRect(size.width() - m_scrollbar->width(), 0, m_scrollbar->width(), size.height()));
+    float deviceScaleFactor = m_webView->page()->deviceScaleFactor();
+    IntSize scaledSize(ceil(size.width() / deviceScaleFactor), ceil(size.height() / deviceScaleFactor));
+    m_scrollbar->setFrameRect(IntRect(scaledSize.width() - m_scrollbar->width(), 0, m_scrollbar->width(), scaledSize.height()));
 
     int visibleItems = this->visibleItems();
     m_scrollbar->setEnabled(visibleItems < m_items.size());
@@ -640,13 +646,17 @@ LRESULT WebPopupMenuProxyWin::onMouseMove(HWND hWnd, UINT message, WPARAM wParam
 {
     handled = true;
 
+    // FIXME: scrollbar uses Logical Pixel but other uses Physical Pixel
+    // Ideal implementation: Both use Logical Pixel.
+    float deviceScaleFactor = m_webView->page()->deviceScaleFactor();
     IntPoint mousePoint(MAKEPOINTS(lParam));
     if (m_scrollbar) {
         IntRect scrollBarRect = m_scrollbar->frameRect();
+        scrollBarRect.scale(deviceScaleFactor);
         if (scrollbarCapturingMouse() || scrollBarRect.contains(mousePoint)) {
             // Put the point into coordinates relative to the scroll bar
             mousePoint.move(-scrollBarRect.x(), -scrollBarRect.y());
-            PlatformMouseEvent event(hWnd, message, wParam, makeScaledPoint(mousePoint, m_scaleFactor));
+            PlatformMouseEvent event(hWnd, message, wParam, makeScaledPoint(mousePoint, m_scaleFactor * deviceScaleFactor));
             m_scrollbar->mouseMoved(event);
             return 0;
         }
@@ -681,13 +691,17 @@ LRESULT WebPopupMenuProxyWin::onLButtonDown(HWND hWnd, UINT message, WPARAM wPar
 {
     handled = true;
 
+    // FIXME: scrollbar uses Logical Pixel but other uses Physical Pixel
+    // Ideal implementation: Both use Logical Pixel.
+    float deviceScaleFactor = m_webView->page()->deviceScaleFactor();
     IntPoint mousePoint(MAKEPOINTS(lParam));
     if (m_scrollbar) {
         IntRect scrollBarRect = m_scrollbar->frameRect();
+        scrollBarRect.scale(deviceScaleFactor);
         if (scrollBarRect.contains(mousePoint)) {
             // Put the point into coordinates relative to the scroll bar
             mousePoint.move(-scrollBarRect.x(), -scrollBarRect.y());
-            PlatformMouseEvent event(hWnd, message, wParam, makeScaledPoint(mousePoint, m_scaleFactor));
+            PlatformMouseEvent event(hWnd, message, wParam, makeScaledPoint(mousePoint, m_scaleFactor * deviceScaleFactor));
             m_scrollbar->mouseDown(event);
             setScrollbarCapturingMouse(true);
             return 0;
@@ -712,14 +726,18 @@ LRESULT WebPopupMenuProxyWin::onLButtonUp(HWND hWnd, UINT message, WPARAM wParam
 {
     handled = true;
 
+    // FIXME: scrollbar uses Logical Pixel but other uses Physical Pixel
+    // Ideal implementation: Both use Logical Pixel.
+    float deviceScaleFactor = m_webView->page()->deviceScaleFactor();
     IntPoint mousePoint(MAKEPOINTS(lParam));
     if (m_scrollbar) {
         IntRect scrollBarRect = m_scrollbar->frameRect();
+        scrollBarRect.scale(deviceScaleFactor);
         if (scrollbarCapturingMouse() || scrollBarRect.contains(mousePoint)) {
             setScrollbarCapturingMouse(false);
             // Put the point into coordinates relative to the scroll bar
             mousePoint.move(-scrollBarRect.x(), -scrollBarRect.y());
-            PlatformMouseEvent event(hWnd, message, wParam, makeScaledPoint(mousePoint, m_scaleFactor));
+            PlatformMouseEvent event(hWnd, message, wParam, makeScaledPoint(mousePoint, m_scaleFactor * deviceScaleFactor));
             m_scrollbar->mouseUp(event);
             // FIXME: This is a hack to work around Scrollbar not invalidating correctly when it doesn't have a parent widget
             RECT r = scrollBarRect;
@@ -861,8 +879,21 @@ void WebPopupMenuProxyWin::paint(const IntRect& damageRect, HDC hdc)
 
     m_data.m_selectedBackingStore->paint(context, selectedIndexDstPoint, selectedIndexRectInBackingStore);
 
-    if (m_scrollbar)
-        m_scrollbar->paint(context, damageRect);
+    // FIXME: scrollbar uses Logical Pixel but other uses Physical Pixel
+    // Ideal implementation: Both use Logical Pixel.
+    // backingStore is already scaled in WebPopupMenuWin.cpp
+    if (m_scrollbar) {
+        float deviceScaleFactor = m_webView->page()->deviceScaleFactor();
+
+        context.save();
+        context.applyDeviceScaleFactor(deviceScaleFactor);
+
+        IntRect scaledDamageRect = damageRect;
+        scaledDamageRect.scale(1 / deviceScaleFactor);
+        m_scrollbar->paint(context, scaledDamageRect);
+
+        context.restore();
+    }
 
     HWndDC hWndDC;
     HDC localDC = hdc ? hdc : hWndDC.setHWnd(m_popup);
