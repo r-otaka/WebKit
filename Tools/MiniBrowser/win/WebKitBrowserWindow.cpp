@@ -201,7 +201,7 @@ WebKitBrowserWindow::WebKitBrowserWindow(BrowserWindowClient& client, WKPageConf
     updateProxySettings();
 
     // FIXME: The current design of WebKit cannot support fractional device scale factor.
-    WKPageSetCustomBackingScaleFactor(page, 1);
+    updateDeviceScaleFactor();
     resetZoom();
 }
 
@@ -223,6 +223,20 @@ void WebKitBrowserWindow::updateProxySettings()
     auto url = createWKURL(m_proxy.url);
     auto excludeHosts = createWKString(m_proxy.excludeHosts);
     WKWebsiteDataStoreEnableCustomNetworkProxySettings(websiteDataStore, url.get(), excludeHosts.get());
+}
+
+void WebKitBrowserWindow::updateDeviceScaleFactor()
+{
+    auto page = WKViewGetPage(m_view.get());
+    float oldCustomDeviceScaleFactor = WKPageGetBackingScaleFactor(page);
+    float oldDeviceScaleFactor = oldCustomDeviceScaleFactor * m_customPageZoom;
+    float deviceScaleFactor = WebCore::deviceScaleFactorForWindow(hwnd());
+    float deviceScaleFactorChangeRatio = deviceScaleFactor / oldDeviceScaleFactor;
+    int roundedDeviceScaleFactor = std::round(deviceScaleFactor);
+    float customDeviceScaleFactorChangeRatio = oldCustomDeviceScaleFactor / roundedDeviceScaleFactor;
+    WKPageSetCustomBackingScaleFactor(page, roundedDeviceScaleFactor);
+    m_customPageZoom = deviceScaleFactor / roundedDeviceScaleFactor;
+    WKPageSetPageZoomFactor(page, WKPageGetPageZoomFactor(page) * customDeviceScaleFactorChangeRatio * deviceScaleFactorChangeRatio);
 }
 
 HRESULT WebKitBrowserWindow::init()
@@ -399,7 +413,7 @@ void WebKitBrowserWindow::updateStatistics(HWND)
 void WebKitBrowserWindow::resetZoom()
 {
     auto page = WKViewGetPage(m_view.get());
-    WKPageSetPageZoomFactor(page, WebCore::deviceScaleFactorForWindow(hwnd()));
+    WKPageSetPageZoomFactor(page, m_customPageZoom);
 }
 
 void WebKitBrowserWindow::zoomIn()
