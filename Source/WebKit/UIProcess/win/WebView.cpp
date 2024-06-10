@@ -163,6 +163,9 @@ LRESULT WebView::wndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_WINDOWPOSCHANGED:
         lResult = onWindowPositionChangedEvent(hWnd, message, wParam, lParam, handled);
         break;
+    case WM_DPICHANGED:
+        lResult = onDPIChangedEvent(hWnd, message, wParam, lParam, handled);
+        break;
     case WM_SETFOCUS:
         lResult = onSetFocusEvent(hWnd, message, wParam, lParam, handled);
         break;
@@ -570,6 +573,12 @@ LRESULT WebView::onWindowPositionChangedEvent(HWND, UINT, WPARAM, LPARAM lParam,
         updateActiveStateSoon();
 
     handled = false;
+    return 0;
+}
+
+LRESULT WebView::onDPIChangedEvent(HWND hWnd, UINT, WPARAM, LPARAM, bool& handled)
+{
+    m_page->setIntrinsicDeviceScaleFactor(deviceScaleFactorForWindow(hWnd));
     return 0;
 }
 

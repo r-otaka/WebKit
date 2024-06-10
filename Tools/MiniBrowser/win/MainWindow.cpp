@@ -393,6 +393,7 @@ LRESULT CALLBACK MainWindow::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPA
         thisWindow->updateDeviceScaleFactor();
         auto& rect = *reinterpret_cast<RECT*>(lParam);
         SetWindowPos(hWnd, nullptr, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, SWP_NOZORDER | SWP_NOACTIVATE);
+        ::SendMessage(thisWindow->browserWindow()->hwnd(), message, wParam, lParam);
         break;
     }
     default:
