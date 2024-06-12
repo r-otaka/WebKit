@@ -39,6 +39,8 @@ using namespace WebCore;
 static const int separatorPadding = 4;
 static const int separatorHeight = 1;
 
+static constexpr int maxPopupHeight = 320;
+
 void WebPopupMenu::setUpPlatformData(const WebCore::IntRect& pageCoordinates, PlatformPopupMenuData& data)
 {
     float deviceScaleFactor = page()->deviceScaleFactor();
@@ -74,13 +76,15 @@ void WebPopupMenu::setUpPlatformData(const WebCore::IntRect& pageCoordinates, Pl
     popupWidth += std::max(0, data.m_clientPaddingRight - data.m_clientInsetRight) + std::max(0, data.m_clientPaddingLeft - data.m_clientInsetLeft);
     data.m_popupWidth = popupWidth;
     // FIXME: If Popup Menu have no Scrollbar, this width addition is not need.
-    popupWidth += ScrollbarTheme::theme().scrollbarThickness(ScrollbarWidth::Thin);
-    popupWidth *= deviceScaleFactor;
-
-    int dropdownMenuWidthInDevicePixel = ceil((pageCoordinates.width() - m_popupClient->clientInsetLeft() - m_popupClient->clientInsetRight()) * deviceScaleFactor);
+    
+    int naturalHeight = data.m_itemHeight * deviceScaleFactor * itemCount;
+    int maxPopupHeightInDevicePixel = maxPopupHeight * deviceScaleFactor;
+    if (naturalHeight > maxPopupHeightInDevicePixel)
+        popupWidth += ScrollbarTheme::theme().scrollbarThickness(ScrollbarWidth::Thin);
+    popupWidth = std::max(pageCoordinates.width() - m_popupClient->clientInsetLeft() - m_popupClient->clientInsetRight(), popupWidth);
 
     // The backing stores should be drawn at least as wide as the control on the page to match the width of the popup window we'll create.
-    int backingStoreWidth = std::max(dropdownMenuWidthInDevicePixel, popupWidth);
+    int backingStoreWidth = popupWidth * deviceScaleFactor;
 
     IntSize backingStoreSize(backingStoreWidth, itemCount * data.m_itemHeight * deviceScaleFactor);
     data.m_notSelectedBackingStore = ShareableBitmap::create({ backingStoreSize });
@@ -103,7 +107,7 @@ void WebPopupMenu::setUpPlatformData(const WebCore::IntRect& pageCoordinates, Pl
         Color optionBackgroundColor = itemStyle.backgroundColor();
         Color optionTextColor = itemStyle.foregroundColor();
 
-        FloatRect itemRect(0, y, backingStoreWidth, data.m_itemHeight);
+        FloatRect itemRect(0, y, popupWidth, data.m_itemHeight);
 
         // Draw the background for this menu item
         if (itemStyle.isVisible()) {
@@ -142,6 +146,7 @@ void WebPopupMenu::setUpPlatformData(const WebCore::IntRect& pageCoordinates, Pl
                 if (RenderTheme::singleton().popupOptionSupportsTextIndent())
                     textX += minimumIntValueForLength(itemStyle.textIndent(), LayoutUnit::fromFloatRound(itemRect.width()));
             } else {
+                data.m_isRTL = true;
                 textX = itemRect.width() - m_popupClient->menuStyle().font().width(textRun);
                 textX = std::min<float>(textX, textX - m_popupClient->clientPaddingRight() + m_popupClient->clientInsetRight());
                 if (RenderTheme::singleton().popupOptionSupportsTextIndent())
